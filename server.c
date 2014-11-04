@@ -1,9 +1,9 @@
 #include "funciones.h"
 
-/*La idea principal sería:
-Lo que hace el pgma de momento:
+/*Lo que hace el pgma de momento:
 Espera una petición con accept, una vez que haya una nueva petición inicia un hilo
-para la comunicación RTSP en TCP (hilo)
+para la comunicación RTSP en TCP (hilo atenderClienteTCP).
+El chorizo que está comentando es el envío de un archivo por socket.
 */
 
 int main()
@@ -71,7 +71,7 @@ int main()
     	//Acepto la conexion
     	printf("Nueva conexion establecida\n");
 
-        //Leo desde el protocolo TCP
+        //Hilo de lectura TCP
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&client_sd);
         //Leo desde el protocolo UDP
         //pthread_create(&rUid, NULL, (void*)atenderClienteUDP, (void*)&client_sd);
