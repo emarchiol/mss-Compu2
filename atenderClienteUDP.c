@@ -9,9 +9,9 @@
 #include "funciones.h"
 
 void atenderClienteUDP(int *socketD){
-
+printf("\nCliente UDP inicializado");
 	int sd = *socketD;
-	char buf[1024];
+	char buf[1024];/*
 	int tamBuf = sizeof buf;
 	int leido;
 	int fd;
@@ -24,12 +24,14 @@ void atenderClienteUDP(int *socketD){
         }
     write(fd,"\n\n==== NEW CLIENT ====\n\n",24);
     memset(buf,0,tamBuf);
+
+
 	while ((leido = read(sd, buf, tamBuf)) > 0)
         {
             write(fd,buf,tamBuf);
             memset (buf, 0, tamBuf);
         }
-
+*/
         close (sd);
 		pthread_exit (NULL);
 }

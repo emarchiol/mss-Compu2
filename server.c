@@ -1,11 +1,9 @@
 #include "funciones.h"
 
 /*La idea principal sería:
-1) Iniciar servidor y esperar peticiones
-2) Una vez aceptada la petición crear un hilo para esa petición
-3) leer que nos solicita el cliente
-4) entregarle lo que el cliente desea
-5) cerrar el hilo
+Lo que hace el pgma de momento:
+Espera una petición con accept, una vez que haya una nueva petición inicia un hilo
+para la comunicación RTSP en TCP (hilo)
 */
 
 int main()
@@ -32,6 +30,7 @@ int main()
     int fd;
     //hilo lectura
     pthread_t rid;
+    pthread_t rUid;
 
     //=========================
     //=========================
@@ -64,21 +63,21 @@ int main()
     	exit(1);
     }
 
-    printf("Ahora si, aceptamos conexiones!\n");
+    printf("Esperando conexiones...\n");
 
     //Inicio servidor
     address_size = sizeof(struct sockaddr);
     while((client_sd = accept(sock_descriptor, (struct sockaddr *)&structClient, &address_size)) >0 ){
     	//Acepto la conexion
-    	printf("Nueva conexion establecida !\n");
+    	printf("Nueva conexion establecida\n");
 
         //Leo desde el protocolo TCP
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&client_sd);
         //Leo desde el protocolo UDP
-        pthread_create(&rid, NULL, (void*)atenderClienteUDP, (void*)&client_sd);
+        //pthread_create(&rUid, NULL, (void*)atenderClienteUDP, (void*)&client_sd);
 
         //Abro y le paso el archivo
-        if ((fd = open ("sample.mp4", O_RDONLY)) < 0)
+        /*if ((fd = open ("sample.mp4", O_RDONLY)) < 0)
         {
             perror("fracaso en abrir el archivo, open dijo:");
             return -1;
@@ -94,9 +93,9 @@ int main()
         }
 
         //Cierro archivo y conexion
-        close (fd);    
-        close (client_sd);
-        printf("Conexion con el cliente terminada\n");
+        close (fd);
+        close (client_sd);*/
+        //printf("Conexion con el cliente terminada\n");
     }
     
     close(sock_descriptor);
