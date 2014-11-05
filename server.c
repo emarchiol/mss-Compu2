@@ -26,11 +26,12 @@ int main()
     int tamBuf;
     tamBuf = sizeof buf;
     memset(buf,0,tamBuf);
-    int leido;
+    /*int leido;
     int fd;
     //hilo lectura
+    pthread_t rUid;*/
     pthread_t rid;
-    pthread_t rUid;
+    
 
     //=========================
     //=========================
@@ -69,7 +70,7 @@ int main()
     address_size = sizeof(struct sockaddr);
     while((client_sd = accept(sock_descriptor, (struct sockaddr *)&structClient, &address_size)) >0 ){
     	//Acepto la conexion
-    	printf("Nueva conexion establecida\n");
+    	printf("\n\r-- Nuevo cliente conectado --\n");
 
         //Hilo de lectura TCP
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&client_sd);

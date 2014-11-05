@@ -9,9 +9,9 @@
 #include "funciones.h"
 
 void atenderClienteUDP(int *socketD){
-printf("\nCliente UDP inicializado");
+printf("\nCliente UDP inicializado, no hago nada");
 	int sd = *socketD;
-	char buf[1024];/*
+	char buf[1024];
 	int tamBuf = sizeof buf;
 	int leido;
 	int fd;
@@ -31,7 +31,7 @@ printf("\nCliente UDP inicializado");
             write(fd,buf,tamBuf);
             memset (buf, 0, tamBuf);
         }
-*/
+
         close (sd);
 		pthread_exit (NULL);
 }
