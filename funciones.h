@@ -15,4 +15,14 @@
 	#include <semaphore.h>
 void atenderClienteTCP(int * socketD);
 void atenderClienteUDP(int * socketD);
+
+typedef struct RTSP_MESSAGE{
+	char header[256];
+	char body[1024];
+} rtsp_message;
+
+rtsp_message respuestaRTSP;
+
+rtsp_message analizarRespuestaRTSP(char respuestaCliente);
+
 #endif
