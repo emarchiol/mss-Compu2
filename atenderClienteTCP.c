@@ -1,72 +1,114 @@
-/*
-        //Le cuento al cliente que está todo bien y le digo que le voy a transmitir
-        char cabecera[256];
-        leido = snprintf (cabecera, sizeof cabecera, "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 19\n\n"); //Transfer-Encoding: chunked\nConnection: keep-alive\n
-        
-        if(write (client_sd, cabecera, leido)<0)
-            perror("fracaso al escribir la cabecera");
-*/
+
+//========================================================================
+    /*
+    Este hilo se dispara cuando un cliente se conecta al servidor por
+    server.c, se encarga de leer lo que el cliente envía y de responder 
+    según corresponda solo si el mensaje es completo en su formato.
+    */
+//========================================================================
+
+
 #include "funciones.h"
 
 void atenderClienteTCP(int *socketD){
-printf("\n Hilo TCP inicializado\n");
+    
 	int sd = *socketD;
 	char buf[1024];
+    char lecturaCompleta[1024];
+    char * plecturaCompleta = lecturaCompleta;
 	int tamBuf = sizeof buf;
 	int leido;
-	int fd;
+    client_packet respuestaRTSP;
 
 
-	memset(buf,0,tamBuf);
-    //Todo esto hasta el while es para el archivo log que no está implementado
-	if ((fd = open ("clienteTCP.log", O_WRONLY | O_CREAT)) < 0)
-        {
-            perror("fracaso en abrir el archivo log, open dijo:");
-            pthread_exit (NULL);
-        }
-    write(fd,"\n\n==== NEW CLIENT ====\n\n",24);
-    memset(buf,0,tamBuf);
+	memset(buf, 0, tamBuf);
+    memset(lecturaCompleta, 0, tamBuf);
+//====================================
+    /*Empieza lectura del socket*/
+//====================================
 
+    write(STDOUT_FILENO,"\n Hilo TCP inicializado\n",24);
     while((leido = read(sd, buf, tamBuf))>0){
-                //Log file, este write es para escribir en el archivo de log
-                //write(fd,buf,tamBuf);
 
-                //El cliente dijo:
-                write(STDOUT_FILENO, buf, sizeof buf);
-                /*Se fija si en el mensaje que me manda el cliente los primero caracteres
-                corresponden a OPTIONS, si es así, le responder con 200 OK y las opciones,
-                se supone que el cliente debería seleccionar una opción, pero no hace nada*/
+/* DEBU
+        //Analizo lo que envió el cliente
+        write(STDOUT_FILENO, "\nMENSAJE VIRGEN:\n", 17);
+        write(STDOUT_FILENO,buf,leido);
 
-                if( (memcmp("OPTIONS",buf,7)==0) ) {
-                    sleep(5);
-                    write(STDOUT_FILENO, "\n-- Enviando respuesta... --\n", 29);
-                    memset (buf, 0, tamBuf);
-                    //Respuesta
-                    //Nota que el CSeq debe ser igual al del cliente
-                    memcpy(buf,"RTSP/1.0 200 OK\r\nCSeq: 1\r\nPublic: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n\r\n",76);
-                    //printf("RTSP/1.0 200 OK\nCSeq: 2\nPublic: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\n");
-                    write(sd, buf, 76);
-                }
+        write(STDOUT_FILENO, "\nANTES:\n", 8);
+        write(STDOUT_FILENO, plecturaCompleta, strlen(lecturaCompleta));
+        write(STDOUT_FILENO, "\n-", 2);
 
-                if( (memcmp("DESCRIBE",buf,8)==0) ) {
-                    sleep(2);
-                    write(STDOUT_FILENO, "\n-- Enviando respuesta2... --\n", 30);
-                    memset (buf, 0, tamBuf);
-                    //memcpy(buf, "RTSP/1.0 501 Not Implemented\r\nCSeq: 2\r\n\r\n", 41);
-                    //Respuesta
-                    //Nota que el CSeq debe ser igual al del cliente
-                    memcpy(buf,"RTSP/1.0 200 OK\r\nCSeq: 2\r\nContent-Base: rtsp://localhost:8000/\r\nContent-Type: application/sdp\r\nContent-Length: 462\r\n\r\nm=video 0 RTP/AVP 96\r\na=control:streamid=0\r\na=range:npt=0-7.741000\r\na=length:npt=7.741000\r\na=rtpmap:96 MP4V-ES/5544\r\na=mimetype:string;'video/MP4V-ES'\r\na=AvgBitRate:integer;304018\r\na=StreamName:string;'hinted video track'\r\nm=audio 0 RTP/AVP 97\r\na=control:streamid=1\r\na=range:npt=0-7.712000\r\na=length:npt=7.712000\r\na=rtpmap:97 mpeg4-generic/32000/2\r\na=mimetype:string;'audio/mpeg4-generic'\r\na=AvgBitRate:integer;65790\r\na=StreamName:string;'hinted audio track'\r\n\r\n", 580);
-                    //printf("RTSP/1.0 200 OK\nCSeq: 2\nPublic: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\n");
-                    write(sd, buf, 580);
-                }
+        
 
+        write(STDOUT_FILENO, "\nDESPUES:\n", 10);
+        write(STDOUT_FILENO, plecturaCompleta, strlen(lecturaCompleta));
+        write(STDOUT_FILENO, "\n-", 2);
 
-            memset (buf, 0, tamBuf);
+        write(STDOUT_FILENO, "\n->DEBUG-->Metodo solicitado: ", 30);
+        write(STDOUT_FILENO, respuestaRTSP.method, strlen(respuestaRTSP.method));
+        write(STDOUT_FILENO, "<-", 2);
+        write(STDOUT_FILENO, "\n\n<-", 4);
+*/
+        //Analizo lo que envió el cliente
+//        write(STDOUT_FILENO, "\nMENSAJE VIRGEN:\n", 17);
+//        write(STDOUT_FILENO,buf,leido);
+
+        respuestaRTSP = analizarRespuestaRTSP(buf, plecturaCompleta);
+/*
+        write(STDOUT_FILENO, "\nDESPUES:\n", 10);
+        write(STDOUT_FILENO, plecturaCompleta, strlen(lecturaCompleta));
+        write(STDOUT_FILENO, "\n-", 2);
+
+        write(STDOUT_FILENO, "\n!DEBUG! -- Metodo solicitado: ", 30);
+        write(STDOUT_FILENO, respuestaRTSP.method, strlen(respuestaRTSP.method));
+        write(STDOUT_FILENO, "\n", 1);*/
+
+        //Si el mensaje es correcto le respondo sino seguiré leyendo
+        if(respuestaRTSP.pckComplete==true){
+
+            write(STDOUT_FILENO, "\n  -Client Said:\n", 17);
+            write(STDOUT_FILENO, lecturaCompleta, strlen(lecturaCompleta));
+
+            if(memcmp(respuestaRTSP.method, "OPTIONS", strlen(respuestaRTSP.method))==0)
+            {
+                write(STDOUT_FILENO, "\n-- Enviando respuesta OPTIONS... --\n", 38);
+                memset (buf, 0, tamBuf);
+                //Respuesta
+                //Nota que el CSeq debe ser igual al del cliente
+                memcpy(buf,"RTSP/1.0 200 OK\r\nCSeq: 1\r\nPublic: DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE\r\n\r\n",76);
+                
+                write(sd, buf, 76);
+            }
+            else if(memcmp(respuestaRTSP.method,"DESCRIBE",strlen(respuestaRTSP.method))==0)
+            {
+                write(STDOUT_FILENO, "\n-- Enviando respuesta DESCRIBE... --\n", 39);
+                memset (buf, 0, tamBuf);
+                //memcpy(buf, "RTSP/1.0 501 Not Implemented\r\nCSeq: 2\r\n\r\n", 41);
+                //Respuesta
+                //Nota que el CSeq debe ser igual al del cliente
+                memcpy(buf,"RTSP/1.0 200 OK\r\nCSeq: 2\r\nContent-Base: rtsp://localhost:8000/\r\nContent-Type: application/sdp\r\nContent-Length: 462\r\n\r\nm=video 0 RTP/AVP 96\r\na=control:streamid=0\r\na=range:npt=0-7.741000\r\na=length:npt=7.741000\r\na=rtpmap:96 MP4V-ES/5544\r\na=mimetype:string;'video/MP4V-ES'\r\na=AvgBitRate:integer;304018\r\na=StreamName:string;'hinted video track'\r\nm=audio 0 RTP/AVP 97\r\na=control:streamid=1\r\na=range:npt=0-7.712000\r\na=length:npt=7.712000\r\na=rtpmap:97 mpeg4-generic/32000/2\r\na=mimetype:string;'audio/mpeg4-generic'\r\na=AvgBitRate:integer;65790\r\na=StreamName:string;'hinted audio track'\r\n\r\n", 580);
+                
+                write(sd, buf, 580);
+            }
+            else if(memcmp(respuestaRTSP.method,"SETUP",strlen(respuestaRTSP.method))==0){
+                write(STDOUT_FILENO, "\n-- Enviando respuesta SETUP... --\n", 35);
+            }
+            else if(memcmp(respuestaRTSP.method,"PLAY",strlen(respuestaRTSP.method))==0){
+                write(STDOUT_FILENO, "\n-- Enviando respuesta PLAY... --\n", 34);
+            }
+            else if(memcmp(respuestaRTSP.method,"TEARDOWN",strlen(respuestaRTSP.method))==0){
+                write(STDOUT_FILENO, "\n-- Enviando respuesta TEARDOWN... --\n", 38);
+            }
+        //Si la lectura fue completa reseteo los buffers para que no queden restos de paquetes anteriores
+        memset(lecturaCompleta, 0, tamBuf);
+        }
+        memset (buf, 0, tamBuf);
     }
     if(leido==-1)
         perror("Fracaso en el read:");
         //Cierro la conexión con el cliente
-        printf("Cerrando hilo TCP...");
+        write(STDOUT_FILENO,"Cerrando hilo TCP...",19);
         close (sd);
 		pthread_exit (NULL);
 }

@@ -31,7 +31,7 @@ int main()
     //hilo lectura
     pthread_t rUid;*/
     pthread_t rid;
-    
+
 
     //=========================
     //=========================
@@ -64,13 +64,13 @@ int main()
     	exit(1);
     }
 
-    printf("Esperando conexiones...\n");
+    write(STDOUT_FILENO, "\nEsperando conexiones...", 24);
 
     //Inicio servidor
     address_size = sizeof(struct sockaddr);
     while((client_sd = accept(sock_descriptor, (struct sockaddr *)&structClient, &address_size)) >0 ){
     	//Acepto la conexion
-    	printf("\n\r-- Nuevo cliente conectado --\n");
+        write(STDOUT_FILENO, "\n-- Nuevo cliente conectado --\n", 31);
 
         //Hilo de lectura TCP
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&client_sd);

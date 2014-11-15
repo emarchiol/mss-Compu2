@@ -13,16 +13,18 @@
 	#include <stdlib.h>
 	#include <pthread.h>
 	#include <semaphore.h>
+	#include <stdbool.h>
 void atenderClienteTCP(int * socketD);
 void atenderClienteUDP(int * socketD);
 
-typedef struct RTSP_MESSAGE{
+typedef struct CLIENT_PACKET{
 	char header[256];
 	char body[1024];
-} rtsp_message;
+	char method[20];
+	int cseq;
+	bool pckComplete;
+} client_packet;
 
-rtsp_message respuestaRTSP;
-
-rtsp_message analizarRespuestaRTSP(char respuestaCliente);
+client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaRTSP);
 
 #endif
