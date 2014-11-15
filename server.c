@@ -74,11 +74,13 @@ int main()
 
         //Hilo de lectura TCP
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&client_sd);
-        //Leo desde el protocolo UDP
+        //Leo desde el protocolo UDP, esta linea probablemente irá en atenderClienteTCP.c
         //pthread_create(&rUid, NULL, (void*)atenderClienteUDP, (void*)&client_sd);
 
+//================================================================================================
+/* Abre un archivo y lo envía por el socket, lo dejo acá en caso de que sirve después
         //Abro y le paso el archivo
-        /*if ((fd = open ("sample.mp4", O_RDONLY)) < 0)
+        if ((fd = open ("sample.mp4", O_RDONLY)) < 0)
         {
             perror("fracaso en abrir el archivo, open dijo:");
             return -1;
@@ -92,13 +94,12 @@ int main()
             printf("Bytes enviados: %d\n",leido);
             memset (buf, 0, tamBuf);
         }
-
-        //Cierro archivo y conexion
+        //Cierro archivo
         close (fd);
-        close (client_sd);*/
-        //printf("Conexion con el cliente terminada\n");
+*/
+//================================================================================================
     }
-    
+    close (client_sd);    
     close(sock_descriptor);
     return 0;
 }

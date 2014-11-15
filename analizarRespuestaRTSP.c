@@ -1,11 +1,14 @@
 #include "funciones.h"
 
-//========================================================================
+//====================================================================================
     /*
     Se encarga de analizar las lecturas que provienen del cliente, 
     verificar que estén completas y ordenarlas dentro de la estructura
+    correspondiente. Recibe "lectura" que representa el mensaje parcial o completo
+    del cliente, en caso de no ser completo lo va construyendo sobre "lecturaCompleta"
+    Una vez completo el mensaje ordena el mismo en la estructura que devuelve.
     */
-//========================================================================
+//====================================================================================
 client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
 
 	char dobleCRLF[4]= "\r\n\r\n";
@@ -34,8 +37,7 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         //=============================
             /*Parseo del método*/
         //=============================
-
-        //Abro el archivo con los tipos de metodos RTSP implementados por el servidor 
+        //Abro el archivo con los tipos de métodos RTSP implementados por el servidor 
         if ((fd = open ("config/metodos", O_RDONLY)) < 0)
         {
             perror("Fracaso en abrir el archivo de metodos, open dijo:");
@@ -67,11 +69,14 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         //=============================
 
         if(implemented){
-           //Esta es como la parte más larga de parseo, por ahora solo leo Cseq y escribo el apropiado en la estructura/respuesta
-           pToken = strstr(lecturaCompleta,"CSeq: ");
-           pToken = pToken+6;
-           //respuestaRTSP.cseq = pToken;
-           respuestaRTSP.cseq = atoi(pToken);
+            //Esta es como la parte más larga de parseo, por ahora solo leo Cseq y escribo el apropiado en la estructura/respuesta
+            //================
+                /*CSEQ*/
+            //================
+            pToken = strstr(lecturaCompleta,"CSeq: ");
+            pToken = pToken+6;
+            //respuestaRTSP.cseq = pToken;
+            respuestaRTSP.cseq = atoi(pToken);
         }
         //Sino, el metodo es: "no implementado"
         else

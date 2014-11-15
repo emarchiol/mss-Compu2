@@ -3,7 +3,12 @@
     /*
     Este hilo se dispara cuando un cliente se conecta al servidor por
     server.c, se encarga de leer lo que el cliente envía y de responder 
-    según corresponda solo si el mensaje es completo en su formato.
+    según corresponda solo si el mensaje es completo en su formato, de otro
+    modo sigue leyendo del socket.
+
+    buf es el contenido de la lectura que envió el cliente hasta un doble
+    CRLF, lecturaCompleta se va llenando con buf representando así un
+    paquete completo.
     */
 //========================================================================
 
@@ -14,7 +19,7 @@ void atenderClienteTCP(int *socketD){
     
 	int sd = *socketD;
 	char buf[1024];
-    char lecturaCompleta[1024];
+    char lecturaCompleta[2048];
     char * plecturaCompleta = lecturaCompleta;
 	int tamBuf = sizeof buf;
 	int leido;
@@ -30,39 +35,8 @@ void atenderClienteTCP(int *socketD){
     write(STDOUT_FILENO,"\n Hilo TCP inicializado\n",24);
     while((leido = read(sd, buf, tamBuf))>0){
 
-/* DEBU
-        //Analizo lo que envió el cliente
-        write(STDOUT_FILENO, "\nMENSAJE VIRGEN:\n", 17);
-        write(STDOUT_FILENO,buf,leido);
-
-        write(STDOUT_FILENO, "\nANTES:\n", 8);
-        write(STDOUT_FILENO, plecturaCompleta, strlen(lecturaCompleta));
-        write(STDOUT_FILENO, "\n-", 2);
-
-        
-
-        write(STDOUT_FILENO, "\nDESPUES:\n", 10);
-        write(STDOUT_FILENO, plecturaCompleta, strlen(lecturaCompleta));
-        write(STDOUT_FILENO, "\n-", 2);
-
-        write(STDOUT_FILENO, "\n->DEBUG-->Metodo solicitado: ", 30);
-        write(STDOUT_FILENO, respuestaRTSP.method, strlen(respuestaRTSP.method));
-        write(STDOUT_FILENO, "<-", 2);
-        write(STDOUT_FILENO, "\n\n<-", 4);
-*/
-        //Analizo lo que envió el cliente
-//        write(STDOUT_FILENO, "\nMENSAJE VIRGEN:\n", 17);
-//        write(STDOUT_FILENO,buf,leido);
 
         respuestaRTSP = analizarRespuestaRTSP(buf, plecturaCompleta);
-/*
-        write(STDOUT_FILENO, "\nDESPUES:\n", 10);
-        write(STDOUT_FILENO, plecturaCompleta, strlen(lecturaCompleta));
-        write(STDOUT_FILENO, "\n-", 2);
-
-        write(STDOUT_FILENO, "\n!DEBUG! -- Metodo solicitado: ", 30);
-        write(STDOUT_FILENO, respuestaRTSP.method, strlen(respuestaRTSP.method));
-        write(STDOUT_FILENO, "\n", 1);*/
 
         //Si el mensaje es correcto le respondo sino seguiré leyendo
         if(respuestaRTSP.pckComplete==true){
@@ -84,11 +58,8 @@ void atenderClienteTCP(int *socketD){
             {
                 write(STDOUT_FILENO, "\n-- Enviando respuesta DESCRIBE... --\n", 39);
                 memset (buf, 0, tamBuf);
-                //memcpy(buf, "RTSP/1.0 501 Not Implemented\r\nCSeq: 2\r\n\r\n", 41);
                 //Respuesta
-                //Nota que el CSeq debe ser igual al del cliente
                 memcpy(buf,"RTSP/1.0 200 OK\r\nCSeq: 2\r\nContent-Base: rtsp://localhost:8000/\r\nContent-Type: application/sdp\r\nContent-Length: 462\r\n\r\nm=video 0 RTP/AVP 96\r\na=control:streamid=0\r\na=range:npt=0-7.741000\r\na=length:npt=7.741000\r\na=rtpmap:96 MP4V-ES/5544\r\na=mimetype:string;'video/MP4V-ES'\r\na=AvgBitRate:integer;304018\r\na=StreamName:string;'hinted video track'\r\nm=audio 0 RTP/AVP 97\r\na=control:streamid=1\r\na=range:npt=0-7.712000\r\na=length:npt=7.712000\r\na=rtpmap:97 mpeg4-generic/32000/2\r\na=mimetype:string;'audio/mpeg4-generic'\r\na=AvgBitRate:integer;65790\r\na=StreamName:string;'hinted audio track'\r\n\r\n", 580);
-                
                 write(sd, buf, 580);
             }
             else if(memcmp(respuestaRTSP.method,"SETUP",strlen(respuestaRTSP.method))==0){
