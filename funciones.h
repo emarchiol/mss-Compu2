@@ -14,8 +14,6 @@
 	#include <pthread.h>
 	#include <semaphore.h>
 	#include <stdbool.h>
-void atenderClienteTCP(int * socketD);
-void atenderClienteUDP(int * socketD);
 
 typedef struct CLIENT_PACKET{
 	char header[256];
@@ -24,8 +22,24 @@ typedef struct CLIENT_PACKET{
 	char cseq[4];
 	char uri[128];
 	bool pckComplete;
+	char fileToPlay[128];
+	//DESCRIBE
+	char contentType[64]; 	//Mime type
+	char contentLenght[5];	//Tamaño de todo lo de abajo
+	char v[3]; //Protocol version
+	char o[64]; //Dunno
+	char s[64]; //Session name
+	char t[64]; //Time the session is active
+	char m[64]; //Media name and transport address
 } client_packet;
 
+typedef struct TCP_INFO {
+    int sd;
+    char ip[15];
+} tcp_info;
+
+void atenderClienteTCP(tcp_info * clientInfo);
+void atenderClienteUDP(int * socketD, client_packet packetRTSP);
 void construirRespuestaRTSP(client_packet * packet);
 client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaRTSP);
 

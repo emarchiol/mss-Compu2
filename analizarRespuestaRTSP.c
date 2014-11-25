@@ -73,10 +73,9 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         //=============================
 
         if(implemented){
-            //IMPORTANTE: FALTA GUARDAR EN VARIABLE EL PATH/URI QUE ENVIA USUALMENTE EL CLIENTE Y LA VERSION DE RTSP QUE ESTAN EN LA MISMA LINEA DEL METODO
 
+            //FALTA ANALIZAR: accept, que determinar los mime que puede leer el cliente
             //Esta es como la parte más larga de parseo, por ahora solo leo Cseq y escribo el apropiado en la estructura/respuesta
-
             //Delimitadores
             const char s[3] = " \n\r";
             //================================
@@ -86,6 +85,18 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
             pToken = strstr(auxCompleta,"rtsp:");
             aux = strtok(pToken, s);
             strcpy(respuestaRTSP.uri, aux);
+            //================================
+                /*FileName from URI*/
+            //================================
+            //Ciertos clientes solo ponen el archivo solicitado en la URI a partir de DESCRIBE y no en OPTIONS
+            if(memcmp(respuestaRTSP.method,"DESCRIBE", 8)==0){
+                strcpy(auxCompleta, lecturaCompleta);
+                pToken = strstr(auxCompleta,"rtsp:");
+                aux = strtok(pToken, "/ ");
+                aux = strtok(NULL, "/ ");
+                aux = strtok(NULL, " ");
+                strcpy(respuestaRTSP.fileToPlay, aux);
+            }
 
             //================================
                 /*RTSP Version*/
@@ -129,27 +140,3 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
 	 }
 return respuestaRTSP;
 }
-
-/*char * parse(char * lecturaCompleta, char * toParse ){
-
-        char * pToken;
-        char * aux;
-
-        const char s[3] = " \n\r";
-        pToken = strstr(lecturaCompleta, toParse);
-        
-        aux = strtok(pToken, s);
-
-        while( token != NULL || strcmp(aux, toParse) ) 
-        {
-          printf( " %s\n", token );
-        
-          token = strtok(NULL, s);
-        }
-        
-
-        write(STDOUT_FILENO, "\nSTRTOK: ", 9);
-        write(STDOUT_FILENO, aux, strlen(aux));
-        write(STDOUT_FILENO, "\n", 1);
-        return aux;
-}*/

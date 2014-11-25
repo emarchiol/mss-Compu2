@@ -1,15 +1,30 @@
-/*
-        //Le cuento al cliente que está todo bien y le digo que le voy a transmitir
-        char cabecera[256];
-        leido = snprintf (cabecera, sizeof cabecera, "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 19\n\n"); //Transfer-Encoding: chunked\nConnection: keep-alive\n
-        
-        if(write (client_sd, cabecera, leido)<0)
-            perror("fracaso al escribir la cabecera");
+//================================================================================================
+/* Abre un archivo y lo envía por el socket, lo dejo acá en caso de que sirve después
+        //Abro y le paso el archivo
+        if ((fd = open ("sample.mp4", O_RDONLY)) < 0)
+        {
+            perror("fracaso en abrir el archivo, open dijo:");
+            return -1;
+        }
+
+        memset(buf, 0, tamBuf);
+        while ((leido = read(fd, buf, tamBuf)) > 0)
+        {
+            printf("Bytes leidos del archivo: %d\n",leido);
+            leido = write (client_sd, buf, leido);
+            printf("Bytes enviados: %d\n",leido);
+            memset (buf, 0, tamBuf);
+        }
+        //Cierro archivo
+        close (fd);
 */
+//================================================================================================
 #include "funciones.h"
 
-void atenderClienteUDP(int *socketD){
+void atenderClienteUDP(int *socketD, client_packet packetRTSP){
 printf("\nCliente UDP inicializado, no hago nada");
+    //Tiene que crear un nuevo socket con otro puerto previamente establecido mediante SETUP y desde server.c se tiene que pasar la IP del cliente
+/*
 	int sd = *socketD;
 	char buf[1024];
 	int tamBuf = sizeof buf;
@@ -17,13 +32,9 @@ printf("\nCliente UDP inicializado, no hago nada");
 	int fd;
 	memset(buf,0,tamBuf);
 
-	if ((fd = open ("clienteUDP.log", O_WRONLY | O_CREAT)) < 0)
-        {
-            perror("fracaso en abrir el archivo log, open dijo:");
-            pthread_exit (NULL);
-        }
-    write(fd,"\n\n==== NEW CLIENT ====\n\n",24);
-    memset(buf,0,tamBuf);
+    int sd_UDP;
+    sd_UDP = socket(AF_INET,SOCK_DGRAM,0);
+    bind(sd_UDP, (struct sockaddr *) &sdCliente,sizeof(sdCliente));
 
 
 	while ((leido = read(sd, buf, tamBuf)) > 0)
@@ -33,5 +44,5 @@ printf("\nCliente UDP inicializado, no hago nada");
         }
 
         close (sd);
-		pthread_exit (NULL);
+		pthread_exit (NULL);*/
 }

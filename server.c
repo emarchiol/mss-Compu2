@@ -8,6 +8,9 @@ El chorizo que está comentando es el envío de un archivo por socket.
 
 int main()
 {
+
+
+
     int port = 8000;
     //Estructura que lleva informacion de conexion como puerto y demás relacionada con el socket de conexion
     //sdCliente vendría a ser la estructura de mi socket y structClient la estructura del cliente al cual le acepto la conexion
@@ -18,7 +21,6 @@ int main()
 
     //Descriptor del socket
     int sock_descriptor;
-    int sd_UDP;
     //Descriptor temporal para administrar las peticiones del cliente
     int client_sd;
     socklen_t address_size;
@@ -26,10 +28,7 @@ int main()
     int tamBuf;
     tamBuf = sizeof buf;
     memset(buf,0,tamBuf);
-    /*int leido;
-    int fd;
-    //hilo lectura
-    pthread_t rUid;*/
+
     pthread_t rid;
 
 
@@ -38,7 +37,7 @@ int main()
 
     //Creo el socket y lo asocio al descriptor
     sock_descriptor =  socket(AF_INET, SOCK_STREAM,0);
-    sd_UDP = socket(AF_INET,SOCK_DGRAM,0);
+
     //Si no pude abrir el socket, error y chau
     if(sock_descriptor == -1){
     	perror("llamada a socket");
@@ -47,7 +46,7 @@ int main()
 
     sdCliente.sin_family = AF_INET;
     sdCliente.sin_addr.s_addr = INADDR_ANY;
-    //htons convierte el puerto "int" a puerto de "red" o algo así
+    //htons convierte el puerto "int" a puerto de "red"
     sdCliente.sin_port = htons(port);
 
     //Todo listo, intento bindear la estructura al socket
@@ -55,7 +54,6 @@ int main()
     	perror("fracaso en el bind");
     	exit(1);
     }
-    bind(sd_UDP, (struct sockaddr *) &sdCliente,sizeof(sdCliente));
 
     //Ahora puedo escuchar conexiones entrantes, OJO con el tercer parametro que identifica la cantidad
     //de conexiones que pueden quedar en cola
@@ -71,33 +69,12 @@ int main()
     while((client_sd = accept(sock_descriptor, (struct sockaddr *)&structClient, &address_size)) >0 ){
     	//Acepto la conexion
         write(STDOUT_FILENO, "\n-- Nuevo cliente conectado --\n", 31);
-
-        //Hilo de lectura TCP
-        pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&client_sd);
-        //Leo desde el protocolo UDP, esta linea probablemente irá en atenderClienteTCP.c
-        //pthread_create(&rUid, NULL, (void*)atenderClienteUDP, (void*)&client_sd);
-
-//================================================================================================
-/* Abre un archivo y lo envía por el socket, lo dejo acá en caso de que sirve después
-        //Abro y le paso el archivo
-        if ((fd = open ("sample.mp4", O_RDONLY)) < 0)
-        {
-            perror("fracaso en abrir el archivo, open dijo:");
-            return -1;
-        }
-
-        memset(buf, 0, tamBuf);
-        while ((leido = read(fd, buf, tamBuf)) > 0)
-        {
-            printf("Bytes leidos del archivo: %d\n",leido);
-            leido = write (client_sd, buf, leido);
-            printf("Bytes enviados: %d\n",leido);
-            memset (buf, 0, tamBuf);
-        }
-        //Cierro archivo
-        close (fd);
-*/
-//================================================================================================
+        //Ip del cliente
+        tcp_info clientInfo;
+        clientInfo.sd = client_sd;
+        sprintf(clientInfo.ip,"%d.%d.%d.%d\n",(int)(structClient.sin_addr.s_addr&0xFF),(int)((structClient.sin_addr.s_addr&0xFF00)>>8),(int)((structClient.sin_addr.s_addr&0xFF0000)>>16),(int)((structClient.sin_addr.s_addr&0xFF000000)>>24));
+        //Hilo de lectura TCP FALTA PASAR LA IP DEL CLIENTE
+        pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&clientInfo);
     }
     close (client_sd);    
     close(sock_descriptor);
