@@ -9,12 +9,16 @@
     Una vez completo el mensaje ordena el mismo en la estructura que devuelve.
     */
 //====================================================================================
+
 client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
 
 	char dobleCRLF[4]= "\r\n\r\n";
 	char buf[128];
     char token[128]; //Se usa para el parseo desde archivos/paquetes
-    char *pToken;
+    char * pToken = malloc(sizeof(char)*128);
+    char * aux = malloc(sizeof(char)*128);
+    char auxCompleta[1024];
+
 	int tamBuf = sizeof buf;
 	int fd;
 	int leido;
@@ -69,14 +73,39 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         //=============================
 
         if(implemented){
+            //IMPORTANTE: FALTA GUARDAR EN VARIABLE EL PATH/URI QUE ENVIA USUALMENTE EL CLIENTE Y LA VERSION DE RTSP QUE ESTAN EN LA MISMA LINEA DEL METODO
+
             //Esta es como la parte más larga de parseo, por ahora solo leo Cseq y escribo el apropiado en la estructura/respuesta
-            //================
+
+            //Delimitadores
+            const char s[3] = " \n\r";
+            //================================
+                /*URI*/
+            //================================
+            strcpy(auxCompleta, lecturaCompleta);
+            pToken = strstr(auxCompleta,"rtsp:");
+            aux = strtok(pToken, s);
+            strcpy(respuestaRTSP.uri, aux);
+
+            //================================
+                /*RTSP Version*/
+            //================================
+
+            strcpy(auxCompleta, lecturaCompleta);
+            pToken = strstr(auxCompleta,"RTSP/");
+            pToken = pToken + 5;
+            aux = strtok(pToken, s);
+            strcpy(respuestaRTSP.uri, aux);
+
+            //================================
                 /*CSEQ*/
-            //================
-            pToken = strstr(lecturaCompleta,"CSeq: ");
-            pToken = pToken+6;
-            //respuestaRTSP.cseq = pToken;
-            respuestaRTSP.cseq = atoi(pToken);
+            //================================
+            
+            strcpy(auxCompleta, lecturaCompleta);
+            pToken = strstr(auxCompleta,"CSeq:");
+            pToken = pToken + 5;
+            aux = strtok(pToken, s);
+            strcpy(respuestaRTSP.cseq, aux);
         }
         //Sino, el metodo es: "no implementado"
         else
@@ -101,3 +130,26 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
 return respuestaRTSP;
 }
 
+/*char * parse(char * lecturaCompleta, char * toParse ){
+
+        char * pToken;
+        char * aux;
+
+        const char s[3] = " \n\r";
+        pToken = strstr(lecturaCompleta, toParse);
+        
+        aux = strtok(pToken, s);
+
+        while( token != NULL || strcmp(aux, toParse) ) 
+        {
+          printf( " %s\n", token );
+        
+          token = strtok(NULL, s);
+        }
+        
+
+        write(STDOUT_FILENO, "\nSTRTOK: ", 9);
+        write(STDOUT_FILENO, aux, strlen(aux));
+        write(STDOUT_FILENO, "\n", 1);
+        return aux;
+}*/

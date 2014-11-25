@@ -12,7 +12,6 @@
     */
 //========================================================================
 
-
 #include "funciones.h"
 
 void atenderClienteTCP(int *socketD){
@@ -23,7 +22,10 @@ void atenderClienteTCP(int *socketD){
     char * plecturaCompleta = lecturaCompleta;
 	int tamBuf = sizeof buf;
 	int leido;
+
     client_packet respuestaRTSP;
+    client_packet * pRTSP = &respuestaRTSP;
+    
 
 
 	memset(buf, 0, tamBuf);
@@ -40,10 +42,17 @@ void atenderClienteTCP(int *socketD){
 
         //Si el mensaje es correcto le respondo sino seguiré leyendo
         if(respuestaRTSP.pckComplete==true){
-
-            write(STDOUT_FILENO, "\n  -Client Said:\n", 17);
+            
+            write(STDOUT_FILENO, "\n  -Client said:\n", 17);
             write(STDOUT_FILENO, lecturaCompleta, strlen(lecturaCompleta));
 
+            construirRespuestaRTSP(pRTSP);
+
+            write(STDOUT_FILENO, "\n  -Server said:\n", 17);
+            write(STDOUT_FILENO, respuestaRTSP.body, strlen(respuestaRTSP.body));
+
+            write(sd, respuestaRTSP.body, strlen(respuestaRTSP.body));
+/*
             if(memcmp(respuestaRTSP.method, "OPTIONS", strlen(respuestaRTSP.method))==0)
             {
                 write(STDOUT_FILENO, "\n-- Enviando respuesta OPTIONS... --\n", 38);
@@ -70,7 +79,8 @@ void atenderClienteTCP(int *socketD){
             }
             else if(memcmp(respuestaRTSP.method,"TEARDOWN",strlen(respuestaRTSP.method))==0){
                 write(STDOUT_FILENO, "\n-- Enviando respuesta TEARDOWN... --\n", 38);
-            }
+            }*/
+
         //Si la lectura fue completa reseteo los buffers para que no queden restos de paquetes anteriores
         memset(lecturaCompleta, 0, tamBuf);
         }
@@ -79,7 +89,7 @@ void atenderClienteTCP(int *socketD){
     if(leido==-1)
         perror("Fracaso en el read:");
         //Cierro la conexión con el cliente
-        write(STDOUT_FILENO,"Cerrando hilo TCP...",19);
+        write(STDOUT_FILENO, "\nCerrando hilo TCP...", 20);
         close (sd);
 		pthread_exit (NULL);
 }

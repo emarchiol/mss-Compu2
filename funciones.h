@@ -21,10 +21,12 @@ typedef struct CLIENT_PACKET{
 	char header[256];
 	char body[1024];
 	char method[20];
-	int cseq;
+	char cseq[4];
+	char uri[128];
 	bool pckComplete;
 } client_packet;
 
+void construirRespuestaRTSP(client_packet * packet);
 client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaRTSP);
 
 #endif
