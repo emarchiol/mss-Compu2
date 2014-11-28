@@ -23,6 +23,7 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
 	int fd;
 	int leido;
 	bool implemented=false;
+    bool corrupt = true;
     client_packet respuestaRTSP;    
 
 	memset(buf, 0, tamBuf);
@@ -72,9 +73,13 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
             /*Parseo del paquete*/
         //=============================
 
-        if(implemented){
+        if( (strstr(lecturaCompleta, "RTSP/") != NULL) && (strstr(lecturaCompleta, "CSeq:") != NULL) )
+            corrupt = false;
+        else
+            corrupt = true;
 
-            //FALTA ANALIZAR: accept, que determinar los mime que puede leer el cliente
+        if(implemented && !corrupt){
+
             //Esta es como la parte más larga de parseo, por ahora solo leo Cseq y escribo el apropiado en la estructura/respuesta
             //Delimitadores
             const char s[3] = " \n\r";
@@ -88,14 +93,39 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
             //================================
                 /*FileName from URI*/
             //================================
-            //Ciertos clientes solo ponen el archivo solicitado en la URI a partir de DESCRIBE y no en OPTIONS
-            if(memcmp(respuestaRTSP.method,"DESCRIBE", 8)==0){
+            //Ciertos clientes solo ponen el archivo solicitado en la URI a partir de DESCRIBE y no en OPTIONS y PLAY está puesto porque DESCRIBE no es necesario implementarlo
+            if(memcmp(respuestaRTSP.method, "DESCRIBE", 8) == 0 || memcmp(respuestaRTSP.method, "PLAY", 4) == 0){
                 strcpy(auxCompleta, lecturaCompleta);
+
+                //rtsp://192.168.0.102:8000/sample2.avi RTSP/1.0
+
                 pToken = strstr(auxCompleta,"rtsp:");
-                aux = strtok(pToken, "/ ");
-                aux = strtok(NULL, "/ ");
+                aux = strtok(pToken, "//");
+                #ifdef DEBUG
+                    write(STDOUT_FILENO, "\nAUX:", 5);
+                    write(STDOUT_FILENO, aux, strlen(aux));
+                #endif
+
+                //acá hay que preguntar 8000/ existe?
+                aux = strtok(NULL, "/");
+                #ifdef DEBUG
+                    write(STDOUT_FILENO, "\nAUX:", 5);
+                    write(STDOUT_FILENO, aux, strlen(aux));
+                #endif
+
+                //acá hay que preguntar si hay algo después de / o solo un espacio
                 aux = strtok(NULL, " ");
+                #ifdef DEBUG
+                    write(STDOUT_FILENO, "\nAUX:", 5);
+                    write(STDOUT_FILENO, aux, strlen(aux));
+                #endif
+
                 strcpy(respuestaRTSP.fileToPlay, aux);
+                #ifdef DEBUG
+                    write(STDOUT_FILENO, "\nFile to play:", 14);
+                    write(STDOUT_FILENO, respuestaRTSP.fileToPlay, strlen(respuestaRTSP.fileToPlay));
+                    write(STDOUT_FILENO, "<-", 2);
+                #endif
             }
 
             //================================
@@ -118,12 +148,17 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
             aux = strtok(pToken, s);
             strcpy(respuestaRTSP.cseq, aux);
         }
-        //Sino, el metodo es: "no implementado"
-        else
+        //Sino, el metodo es: "no implementado" o corrupto
+        else if(corrupt){
+            memset(respuestaRTSP.method, 0, sizeof(respuestaRTSP.method));
+            memcpy(respuestaRTSP.method, "Bad Request", 11);
+        }
+        else if(!implemented)
         {   
             memset(respuestaRTSP.method, 0, sizeof(respuestaRTSP.method));
-            memcpy(respuestaRTSP.method, "Not Implemented",15);
+            memcpy(respuestaRTSP.method, "Not Implemented", 15);
         }
+
         //Cierro archivo "metodos.txt"
         close (fd);
      }

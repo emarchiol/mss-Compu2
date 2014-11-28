@@ -1,16 +1,20 @@
 #include "funciones.h"
 
-/*Lo que hace el pgma de momento:
-Espera una petición con accept, una vez que haya una nueva petición inicia un hilo
-para la comunicación RTSP en TCP (hilo atenderClienteTCP).
-El chorizo que está comentando es el envío de un archivo por socket.
-*/
+//================================================================================================================================================
+    /*  
+    sMM version 0.0
+    Que hace de momento:
 
+    Espera una petición con accept, una vez que haya una nueva petición inicia el hilo TCP para la comunicación RTSP, analiza/parsea los mensajes
+    del cliente con analizarRespuestaRTSP.c y responde adecuadamente mediante construirRespuestaRTSP.c. Si el cliente solicita PLAY, entonces 
+    atenderClienteTCP.c disparará a atenderClienteUDP.c para empezar el streaming de video especificado por DESCRIBE y habiendo configurado la 
+    conexion previamente por SETUP.
+    Server setea la key de comunicación de los hilos, de esta manera las claves serán unicas y no debería haber problemas de comunicación con
+    múltiples clientes conectados.
+    */
+//================================================================================================================================================
 int main()
 {
-
-
-
     int port = 8000;
     //Estructura que lleva informacion de conexion como puerto y demás relacionada con el socket de conexion
     //sdCliente vendría a ser la estructura de mi socket y structClient la estructura del cliente al cual le acepto la conexion
@@ -24,13 +28,8 @@ int main()
     //Descriptor temporal para administrar las peticiones del cliente
     int client_sd;
     socklen_t address_size;
-    char buf[1048576]; //1mb de buffer
-    int tamBuf;
-    tamBuf = sizeof buf;
-    memset(buf,0,tamBuf);
-
     pthread_t rid;
-
+    key_t key = 0;
 
     //=========================
     //=========================
@@ -62,6 +61,9 @@ int main()
     	exit(1);
     }
 
+    //=========================
+        //Inicio servidor
+    //=========================
     write(STDOUT_FILENO, "\nEsperando conexiones...", 24);
 
     //Inicio servidor
@@ -72,8 +74,11 @@ int main()
         //Ip del cliente
         tcp_info clientInfo;
         clientInfo.sd = client_sd;
+        //Parseo el ip del cliente
         sprintf(clientInfo.ip,"%d.%d.%d.%d\n",(int)(structClient.sin_addr.s_addr&0xFF),(int)((structClient.sin_addr.s_addr&0xFF00)>>8),(int)((structClient.sin_addr.s_addr&0xFF0000)>>16),(int)((structClient.sin_addr.s_addr&0xFF000000)>>24));
-        //Hilo de lectura TCP FALTA PASAR LA IP DEL CLIENTE
+        //Disparo el hilo TCP
+        key++;
+        clientInfo.key = key;
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&clientInfo);
     }
     close (client_sd);    
