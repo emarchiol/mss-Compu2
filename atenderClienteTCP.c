@@ -31,10 +31,13 @@ void atenderClienteTCP(tcp_info * clientInfo){
     client_packet * pRTSP = &respuestaRTSP;
 
     //Copia la llave para IPC
-    respuestaRTSP.key = clientInfo->key;
+    //respuestaRTSP.key = clientInfo->key;
+    printf("\nclienInfoKey: %d", clientInfo->key);
+
     
 	memset(buf, 0, tamBuf);
     memset(lecturaCompleta, 0, tamBuf);
+    bool unaVez = false;
 
 //====================================
     /*Empieza lectura del socket*/
@@ -42,7 +45,7 @@ void atenderClienteTCP(tcp_info * clientInfo){
 
     write(STDOUT_FILENO,"\n Hilo TCP inicializado\n",24);
     while((leido = read(sd, buf, tamBuf))>0 && (memcmp(respuestaRTSP.method, "TEARDOWN", 8) != 0) ){
-
+printf("\nTest antes analiz key: %d\n", clientInfo->key);
         respuestaRTSP = analizarRespuestaRTSP(buf, plecturaCompleta);
 
         //Si el mensaje es correcto le respondo sino seguiré leyendo
@@ -51,26 +54,31 @@ void atenderClienteTCP(tcp_info * clientInfo){
 
             write(STDOUT_FILENO, "\n\n  -Client said:\n", 18);
             write(STDOUT_FILENO, lecturaCompleta, strlen(lecturaCompleta));
-
+printf("\nTest despues analiz key: %d\n", clientInfo->key);
             construirRespuestaRTSP(pRTSP);
-
+printf("\nTest despues construir key: %d\n", clientInfo->key);
             write(STDOUT_FILENO, "\n  -Server said:\n", 17);
             write(STDOUT_FILENO, respuestaRTSP.body, strlen(respuestaRTSP.body));
 
             write(sd, respuestaRTSP.body, strlen(respuestaRTSP.body));
 
             //Empiezo la transmision por UDP, se deberían considerar múltiples llamadas a SETUP por el mismo cliente para que no explote
-            if( memcmp(respuestaRTSP.method, "SETUP", 5) == 0){
+            if( (memcmp(respuestaRTSP.method, "SETUP", 5) == 0) && (unaVez == false) ){
                 //Arranco el hilo UDP y no hago nada
                 strcpy(respuestaRTSP.ip, clientInfo->ip);
-                if( (qid = msgget(respuestaRTSP.key, IPC_CREAT | 0666)) < 0 )
+                #ifdef DEBUG
+                    printf("\nTCP->Voy a abrir con clientInfo->key: %d\n", clientInfo->key);
+                #endif
+                if( (qid = msgget(clientInfo->key, 0666 | IPC_CREAT)) < 0 )
                     perror("Fracaso al crear IPC para TCP");
                 write(STDOUT_FILENO,"\nIPC Creado con exito", 21);
-
+                respuestaRTSP.key = clientInfo->key;
                 pthread_create(&rUid, NULL, (void*)atenderClienteUDP, (void*)&respuestaRTSP);
+                unaVez = true;
             }
             else if( memcmp(respuestaRTSP.method, "PLAY", 4) == 0){
                //Empiezo el streaming !
+		write(STDOUT_FILENO, "\nTCP->Enviando play", 19);
                 strncpy(msg.mtext, "PLAY", 4);
                 msg.mtype = 1;
                 if(msgsnd(qid, &msg, BUFMSG, 0) < 0)
@@ -82,15 +90,13 @@ void atenderClienteTCP(tcp_info * clientInfo){
                     write(STDOUT_FILENO,"\n Eliminando hilo UDP", 21);
                 #endif
                 strncpy(msg.mtext, "TEARDOWN", 8);
-                msg.mtype = 2;
+                msg.mtype = 1;
                 if(msgsnd(qid, &msg, BUFMSG, 0) < 0)
                     perror("Fracaso al enviar IPC TEARDOWN");
                 #ifdef DEBUG
                 else
                     write(STDOUT_FILENO,"\nTEARDOWN enviado con exito a UDP", 33);
                 #endif
-
-                msgctl(qid, IPC_RMID, NULL);
             }
 
         //Si la lectura fue completa reseteo los buffers para que no queden restos de paquetes anteriores
@@ -102,7 +108,7 @@ void atenderClienteTCP(tcp_info * clientInfo){
 	if(memcmp(respuestaRTSP.method, "TEARDOWN", 8) == 0 )
 	{
 		write(STDOUT_FILENO, "\nCerrando hilo TCP por TEARDOWN", 31);
-        write(STDOUT_FILENO, "\n - Conexion con el cliente terminada -", 39);
+	        write(STDOUT_FILENO, "\n - Conexion con el cliente terminada -", 39);
 		close(sd);
 		return;
 	}

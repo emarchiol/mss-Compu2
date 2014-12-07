@@ -36,6 +36,8 @@ typedef struct CLIENT_PACKET{
 	char m[64]; //Media name and transport address
 	char aMime[64]; //Media name and transport address
 	char aRTPMap[64]; //Media name and transport address
+	char aSize[32]; //Media name and transport address
+	char aRate[32]; //Media name and transport address
 	//Para el protocolo UDP
 	char ip[15];
 	key_t key; //qid en realidad es para el IPC, no tiene mucho que ver con esta estructura, pero es la manera más sencilla de pasarle el id
@@ -54,6 +56,20 @@ typedef struct MSG_IPC{
 	long mtype;
 	char mtext[BUFMSG];
 }msg_ipc;
+
+typedef struct RTP_HEADER
+{
+	u_int16_t v:2; /* protocol version */
+	u_int16_t p:1; /* padding flag */
+	u_int16_t x:1; /* header extension flag */
+	u_int16_t cc:4; /* CSRC count */
+	u_int16_t m:1; /* marker bit */
+	u_int16_t pt:7; /* payload type */
+	u_int16_t seq:16; /* sequence number */
+	u_int32_t ts; /* timestamp */
+	u_int32_t ssrc; /* synchronization source */
+// u_int32_t *csrc;
+}rtp_header;
 
 void atenderClienteTCP(tcp_info * clientInfo);
 void atenderClienteUDP(client_packet * packetRTSP);

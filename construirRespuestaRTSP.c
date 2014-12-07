@@ -14,7 +14,7 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
     //================================
 	if( memcmp(packetRTSP->method, "OPTIONS", 7) == 0 )
 	{
-		memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", 17);
+		memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", strlen("RTSP/1.0 200 OK\r\n") +1);
 		strncat(packetRTSP->body, "CSeq: ", 6);
 		strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 		strncat(packetRTSP->body, "\r\n", 2);
@@ -42,11 +42,11 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
 			/* walk through other tokens */
 			while( token != NULL ) 
 			{
-				strcat(packetRTSP->body, token);
+				strncat(packetRTSP->body, token, strlen(token));
 				
 				token = strtok(NULL, s);
 				if(token != NULL)
-					strcat(packetRTSP->body, ", ");
+					strncat(packetRTSP->body, ", ", 2);
 			}
 		}
 		strncat(packetRTSP->body, "\r\n\r\n", 4);
@@ -62,28 +62,33 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
 		if (!fileNotFound(packetRTSP)){
 
 			/*Construcción del contenido del mensaje*/
-			strcpy(packetRTSP->v, "v=0\r\n");
-			strcpy(packetRTSP->m, "m=video 51372 UDP 26\r\n"); //El primer número corresponde al puerto que usará el cliente, 26 es tipo mJPEG
-			strcpy(packetRTSP->aMime, "a=mimetype:string;\"video/JPEG\"\r\n");
-			strcpy(packetRTSP->aRTPMap, "a=rtpmap:26 JPEG/90000\r\n");
+			memcpy(packetRTSP->v, "v=0\r\n", strlen("v=0\r\n")+1);
+			memcpy(packetRTSP->m, "m=video 51372 UDP 26\r\n", strlen("m=video 51372 UDP 26\r\n")+1); //El primer número corresponde al puerto que usará el cliente, 26 es tipo mJPEG
+			memcpy(packetRTSP->aMime, "a=mimetype:string;\"video/JPEG\"\r\n", strlen("a=mimetype:string;\"video/JPEG\"\r\n")+1);
+			memcpy(packetRTSP->aRTPMap, "a=rtpmap:26 JPEG/90000\r\n", strlen("a=rtpmap:26 JPEG/90000\r\n")+1);
+			memcpy(packetRTSP->aSize, "a=x-dimensions:384,144\r\n", strlen("a=x-dimensions:384,144\r\n")+1);
+			memcpy(packetRTSP->aRate, "a=x-framerate:25\r\n", strlen("a=x-framerate:25\r\n")+1);
 
-			strcat(packetRTSP->content, packetRTSP->v); 
-			strcat(packetRTSP->content, packetRTSP->m); 
-			strcat(packetRTSP->content, packetRTSP->aMime);
-			strcat(packetRTSP->content, packetRTSP->aRTPMap);
+			strncat(packetRTSP->content, packetRTSP->v, strlen(packetRTSP->v));
+			strncat(packetRTSP->content, packetRTSP->m, strlen(packetRTSP->m));
+			strncat(packetRTSP->content, packetRTSP->aMime, strlen(packetRTSP->aMime));
+			strncat(packetRTSP->content, packetRTSP->aRTPMap, strlen(packetRTSP->aRTPMap));
+			strncat(packetRTSP->content, packetRTSP->aSize, strlen(packetRTSP->aSize));
+			strncat(packetRTSP->content, packetRTSP->aRate, strlen(packetRTSP->aRate));
+
 			strncat(packetRTSP->content, "\r\n", 2);
 
 			//Cuantos caracteres tiene content + el último doble CRLF y no el primero
 			sprintf(packetRTSP->contentLength, "%zd", strlen(packetRTSP->content));
 
 			/*Construcción del mensaje completo*/
-			memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", 17);
+			memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", strlen("RTSP/1.0 200 OK\r\n")+1);
 			strncat(packetRTSP->body, "CSeq: ", 6);
 			strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 			strncat(packetRTSP->body, "\r\n", 2);
 			strncat(packetRTSP->body, "Content-Type: application/sdp", 29);
 			strncat(packetRTSP->body, "\r\n", 2);
-			strncat(packetRTSP->body, "Content-Length: ", 16); 
+			strncat(packetRTSP->body, "Content-Length: ", 16);
 			strcat(packetRTSP->body, packetRTSP->contentLength);
 			strncat(packetRTSP->body, "\r\n\r\n", 4);
 			strncat(packetRTSP->body, packetRTSP->content, strlen(packetRTSP->content));
@@ -93,7 +98,7 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
         /*200 OK SETUP*/
     //================================
 	else if( memcmp(packetRTSP->method, "SETUP", 5) == 0 ){
-		memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", 17);
+		memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", strlen("RTSP/1.0 200 OK\r\n")+1);
 		strncat(packetRTSP->body, "CSeq: ", 6);
 		strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 		strncat(packetRTSP->body, "\r\n", 2);
@@ -106,7 +111,7 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
         /*200 OK TEARDOWN*/
     //================================
 	else if( memcmp(packetRTSP->method, "TEARDOWN", 8) == 0 ){
-		memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", 17);
+		memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", strlen("RTSP/1.0 200 OK\r\n")+1);
 		strncat(packetRTSP->body, "CSeq: ", 6);
 		strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 		strncat(packetRTSP->body, "\r\n\r\n", 4);
@@ -118,7 +123,7 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
 		
 		//Primero me fijo si el archivo solicitado existe. 404 ?
 		if (!fileNotFound(packetRTSP)){
-			memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", 17);
+			memcpy(packetRTSP->body, "RTSP/1.0 200 OK\r\n", strlen("RTSP/1.0 200 OK\r\n")+1);
 			strncat(packetRTSP->body, "CSeq: ", 6);
 			strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 			strncat(packetRTSP->body, "\r\n", 2);
@@ -130,14 +135,14 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
         /*501 Not Implemented*/
     //================================
 	else if( memcmp(packetRTSP->method, "Not Implemented", 15) == 0 ){
-		memcpy(packetRTSP->body, "RTSP/1.0 501 Not Implemented\r\n", 30);
+		memcpy(packetRTSP->body, "RTSP/1.0 501 Not Implemented\r\n", strlen("RTSP/1.0 501 Not Implemented\r\n")+1 );
 		strncat(packetRTSP->body, "\r\n\r\n", 4);
 	}
 	//================================
         /*400 Bad Request*/
     //================================
 	else if( memcmp(packetRTSP->method, "Bad Request", 11) == 0 ){
-		memcpy(packetRTSP->body, "RTSP/1.0 400 Bad Request\r\n", 26);
+		memcpy(packetRTSP->body, "RTSP/1.0 400 Bad Request\r\n", strlen("RTSP/1.0 400 Bad Request\r\n")+1 );
 		strncat(packetRTSP->body, "\r\n\r\n", 4);
 	}
 }
@@ -149,7 +154,7 @@ bool fileNotFound(client_packet * packetRTSP){
 	int fd;
 	if ((fd = open (packetRTSP->fileToPlay, O_RDONLY)) < 0 )
 	{
-		memcpy(packetRTSP->body, "RTSP/1.0 404 Not Found\r\n", 24);
+		memcpy(packetRTSP->body, "RTSP/1.0 404 Not Found\r\n", strlen("RTSP/1.0 404 Not Found\r\n")+1 );
 		strncat(packetRTSP->body, "CSeq: ", 6);
 		strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 		strncat(packetRTSP->body, "\r\n", 2);

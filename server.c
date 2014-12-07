@@ -13,8 +13,16 @@
     múltiples clientes conectados.
     */
 //================================================================================================================================================
+void signal_callback_handler(int signum);
+
+void signal_callback_handler(int signum){
+    write(STDOUT_FILENO, "\n-- Shutting down server by user... --\n", 39);    
+    exit(signum);
+}
+
 int main()
 {
+
     int port = 8000;
     //Estructura que lleva informacion de conexion como puerto y demás relacionada con el socket de conexion
     //sdCliente vendría a ser la estructura de mi socket y structClient la estructura del cliente al cual le acepto la conexion
@@ -29,7 +37,10 @@ int main()
     int client_sd;
     socklen_t address_size;
     pthread_t rid;
-    key_t key = 0;
+    key_t key = 115;
+
+    //Capturo señal CTRL+C para liberar el puerto apropiadamente
+    signal(SIGINT, signal_callback_handler);
 
     //=========================
     //=========================
@@ -78,10 +89,11 @@ int main()
         sprintf(clientInfo.ip,"%d.%d.%d.%d\n",(int)(structClient.sin_addr.s_addr&0xFF),(int)((structClient.sin_addr.s_addr&0xFF00)>>8),(int)((structClient.sin_addr.s_addr&0xFF0000)>>16),(int)((structClient.sin_addr.s_addr&0xFF000000)>>24));
         //Disparo el hilo TCP
         key++;
-        clientInfo.key = key;
+        clientInfo.key = ftok("config/metodos", key);
+        printf("\nkey:%d\n\n", clientInfo.key);
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&clientInfo);
     }
-    close (client_sd);    
+    close(client_sd);    
     close(sock_descriptor);
     return 0;
 }

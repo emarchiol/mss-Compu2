@@ -31,8 +31,10 @@ void atenderClienteUDP(client_packet * packetRTSP){
     int rcv;
     msg_ipc msg;
 
-    //Inicia la estructura de direcciones de scoket para los protocolos de internet
+    rtp_header headerRTP;
 
+
+    //Inicia la estructura de direcciones de scoket para los protocolos de internet
     bzero(&address, sizeof(address));
     address.sin_family = AF_INET;
     inet_pton(AF_INET, packetRTSP->ip, &address.sin_addr );
@@ -40,16 +42,20 @@ void atenderClienteUDP(client_packet * packetRTSP){
     address.sin_port = htons(UDPPORT);
 
     /*Creamos el socket UDP*/
-
     sdUDP = socket(AF_INET, SOCK_DGRAM, 0);
-    qid = msgget(packetRTSP->key, IPC_CREAT | 0666);
+    //Abro IPC
+    if( (qid = msgget(packetRTSP->key, 0666 | IPC_CREAT)) < 0 )
+        perror("\nFracaso en el IPC UDP msgget");
 
 while( !teardown ){  
     
     write(STDOUT_FILENO, "\nUDP->Escuchando IPC's", 22);
+    #ifdef DEBUG
+        printf("\nUDP->Voy a abrir con packetRTSP: %d\n", packetRTSP->key);
+    #endif
 
     if( (rcv = msgrcv(qid, &msg, BUFMSG, 0, 0)) < 0 )
-        perror("Fracaso en el IPC UDP");
+        perror("Fracaso en el IPC UDP en msgrcv");
 
     #ifdef DEBUG
         write(STDOUT_FILENO, "\nUDP->Recibi un:", 16);
@@ -75,6 +81,7 @@ while( !teardown ){
         while ( ((leido = read(fd, buf, tamBuf)) > 0) && ((!teardown) && (!pause)) )
         {
             //Pregunto si durante el PLAY se envió otra señal, si se hizo es porque tengo que dejar de enviar el archivo
+            msg.mtype = 1;
             if( (rcv = msgrcv(qid, &msg, BUFMSG, 0, IPC_NOWAIT)) > 0)
             {
                 #ifdef DEBUG
@@ -93,18 +100,38 @@ while( !teardown ){
                     teardown = true;
                     #ifdef DEBUG
                         write(STDOUT_FILENO, "\nUDP->TEARDOWN", 14);
+                        //Destruyo el IPC
+                        msgctl(qid, IPC_RMID, NULL);
                     #endif
                 }
             }else
             {
-                sendto(sdUDP, buf, tamBuf, 0, (struct sockaddr *)&address, sizeof(address));
-                //leido = write (sdUDP, buf, leido);
+
+                //Construcción precaria de paquete RTP
+                headerRTP.v = 2;
+                headerRTP.seq = 12525;
+                headerRTP.cc = 0;
+                headerRTP.x = 0;
+                headerRTP.m = 1;
+                headerRTP.pt = 0;
+                headerRTP.p = 0;
+                headerRTP.ssrc = 25255563;
+                headerRTP.ts = 0; //getTickCount(); (??)
+
+                char buf2[20];
+                snprintf(buf2, 20, "%d %d %d %d %d %d %d %d %d", headerRTP.v, headerRTP.seq, headerRTP.cc, headerRTP.x, headerRTP.m, headerRTP.pt, headerRTP.p, headerRTP.ssrc, headerRTP.ts);
+                write(STDOUT_FILENO, "\nCabeza paquete UDP", 19);
+                write(STDOUT_FILENO, buf2, strlen(buf2));
+                //Envío de datos al cliente
+                sendto(sdUDP, buf, sizeof(buf), 0, (struct sockaddr *)&address, sizeof(address));
                 memset (buf, 0, tamBuf);
                 #ifdef DEBUG
-                write(STDOUT_FILENO, "\nUDP->Durmiendo", 15);
-                sleep(1);
+                //write(STDOUT_FILENO, "\nUDP->Durmiendo", 15);
+                //sleep(1);
                 #endif
+                perror("\n FRACASO en el IPC_NOWAIT");
             }
+            sleep(1);
         }
         
         #ifdef DEBUG
@@ -114,11 +141,6 @@ while( !teardown ){
     }
     memset(buf, 0, tamBuf);
 }
-
-#ifdef DEBUG
-    write(STDOUT_FILENO, "\nUDP->Recibi por ultimo:", 24);
-    write(STDOUT_FILENO, buf, strlen(buf));
-#endif
 
     //Cierro archivo
     close (fd);

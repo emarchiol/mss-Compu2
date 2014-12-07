@@ -56,7 +56,7 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
             if(memcmp(buf, "\n", 1)==0){
                 if(memcmp(lecturaCompleta, token, strlen(token))==0 ){
                     memset(respuestaRTSP.method, 0, sizeof(respuestaRTSP.method));
-                    memcpy(respuestaRTSP.method, token, strlen(token) );
+                    memcpy(respuestaRTSP.method, token, strlen(token)+1 );
                     implemented = true;
                     memset(token, 0, sizeof token);
                 }
@@ -64,15 +64,15 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
                     memset(token, 0, sizeof token);
             }
             else{
-                memcpy(token, strcat(token, buf), 1);
+                memcpy(token, strcat(token, buf), 2); //el n acá era "1" antes
             }
         }
+
         //Si está implementado es porque el mensaje es correcto y ya está listo para ser ordenado (es completo)
 
         //=============================
             /*Parseo del paquete*/
         //=============================
-
         if( (strstr(lecturaCompleta, "RTSP/") != NULL) && (strstr(lecturaCompleta, "CSeq:") != NULL) )
             corrupt = false;
         else
@@ -151,12 +151,12 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         //Sino, el metodo es: "no implementado" o corrupto
         else if(corrupt){
             memset(respuestaRTSP.method, 0, sizeof(respuestaRTSP.method));
-            memcpy(respuestaRTSP.method, "Bad Request", 11);
+            memcpy(respuestaRTSP.method, "Bad Request", strlen("Bad Request")+1 );
         }
         else if(!implemented)
         {   
             memset(respuestaRTSP.method, 0, sizeof(respuestaRTSP.method));
-            memcpy(respuestaRTSP.method, "Not Implemented", 15);
+            memcpy(respuestaRTSP.method, "Not Implemented", strlen("Not Implemented")+1 );
         }
 
         //Cierro archivo "metodos.txt"
@@ -169,7 +169,7 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         lecturaCompleta = strncat(lecturaCompleta, lectura, strlen(lectura));
         //Seteo el mensaje como incompleto
         memset(respuestaRTSP.method, 0, sizeof(respuestaRTSP.method));
-	 	memcpy(respuestaRTSP.method, "Incomplete",10);
+	 	memcpy(respuestaRTSP.method, "Incomplete",11);
 	 	respuestaRTSP.pckComplete = false;
         write(STDOUT_FILENO, "\nBuilding packet...", 19);
 	 }
