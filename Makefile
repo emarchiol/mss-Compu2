@@ -1,6 +1,6 @@
 CFLAGS = -g -Wall
 TARGETS = server
-TFLAG = -lpthread
+TFLAG = -lpthread -lrt
 
 debug: CC += -DDEBUG -g -Wall
 debug: all

@@ -9,14 +9,16 @@
     del cliente con analizarRespuestaRTSP.c y responde adecuadamente mediante construirRespuestaRTSP.c. Si el cliente solicita PLAY, entonces 
     atenderClienteTCP.c disparará a atenderClienteUDP.c para empezar el streaming de video especificado por DESCRIBE y habiendo configurado la 
     conexion previamente por SETUP.
-    Server setea la key de comunicación de los hilos, de esta manera las claves serán unicas y no debería haber problemas de comunicación con
-    múltiples clientes conectados.
+    Además server.c setea la key de comunicación de los hilos, de esta manera las claves serán unicas y no debería haber problemas de comunicación
+    con múltiples clientes conectados.
     */
 //================================================================================================================================================
-void signal_callback_handler(int signum);
+void killServer(int signum);
 
-void signal_callback_handler(int signum){
-    write(STDOUT_FILENO, "\n-- Shutting down server by user... --\n", 39);    
+void killServer(int signum){
+    write(STDOUT_FILENO, "\n-- Shutting down server by user... --\n", 39);   
+    sem_close(semaforo);
+    sem_unlink("/semaforo"); 
     exit(signum);
 }
 
@@ -37,10 +39,21 @@ int main()
     int client_sd;
     socklen_t address_size;
     pthread_t rid;
-    key_t key = 115;
 
     //Capturo señal CTRL+C para liberar el puerto apropiadamente
-    signal(SIGINT, signal_callback_handler);
+    signal(SIGINT, killServer);
+
+    //Generador de key para las colas 
+    srand(time(NULL));
+    int r = rand();
+    char keyQ[8];
+    memset(keyQ, 0, 8);
+    //Estructura con info del cliente
+    tcp_info clientInfo;
+    //Semaforo
+    if ((semaforo = sem_open ("/semaforo", O_CREAT | O_RDWR, 0666, 0)) < 0)
+        perror ("FRACASO al crear semaforo");
+
 
     //=========================
     //=========================
@@ -82,18 +95,31 @@ int main()
     while((client_sd = accept(sock_descriptor, (struct sockaddr *)&structClient, &address_size)) >0 ){
     	//Acepto la conexion
         write(STDOUT_FILENO, "\n-- Nuevo cliente conectado --\n", 31);
-        //Ip del cliente
-        tcp_info clientInfo;
+
         clientInfo.sd = client_sd;
         //Parseo el ip del cliente
         sprintf(clientInfo.ip,"%d.%d.%d.%d\n",(int)(structClient.sin_addr.s_addr&0xFF),(int)((structClient.sin_addr.s_addr&0xFF00)>>8),(int)((structClient.sin_addr.s_addr&0xFF0000)>>16),(int)((structClient.sin_addr.s_addr&0xFF000000)>>24));
+
+        //Genero la key unica para la cola de TCP y UDP
+        snprintf(keyQ, 8, "%d", r);
+        memcpy(keyQ, "/", 1);
+        strncpy(clientInfo.keyQ, keyQ, 8); //Asigno key de cola
+        r = rand();
+        memset(keyQ, 0, 8);
+
         //Disparo el hilo TCP
-        key++;
-        clientInfo.key = ftok("config/metodos", key);
-        printf("\nkey:%d\n\n", clientInfo.key);
+        printf("\nkeyQ:%s\n\n", clientInfo.keyQ);
+
         pthread_create(&rid, NULL, (void*)atenderClienteTCP, (void*)&clientInfo);
+
+        //Liberación de recursos, tengo que esperar a que el hilo copie los recursos de clientInfo antes de liberar los recursos y poder aceptar otro cliente
+        if(sem_wait(semaforo)<0)
+            perror("FRACASO en sem_wait");
+        //Reseteo la estructura
+        clientInfo.sd = 0;
+        memset(clientInfo.keyQ, 0, sizeof(clientInfo.keyQ));
+        memset(clientInfo.ip, 0, sizeof(clientInfo.ip));
     }
-    close(client_sd);    
     close(sock_descriptor);
     return 0;
 }

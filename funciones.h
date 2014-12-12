@@ -6,7 +6,6 @@
 	#include <sys/stat.h>
 	#include <sys/ipc.h>
 	#include <sys/msg.h>
-
 	#include <arpa/inet.h>
 	#include <fcntl.h>
 	#include <unistd.h>
@@ -17,9 +16,20 @@
 	#include <stdlib.h>
 	#include <pthread.h>
 	#include <stdbool.h>
-	//Solo para pthread_kill, debería eliminarse
+	#include <mqueue.h>
 	#include <signal.h>
+	#include <time.h>
+	#include <semaphore.h>
+
+	//Constantes
+	#define QBUFMSG 16
 	#define BUFMSG 16
+	#define QNOFLAGS 0
+	#define QMAX 5
+	#define UDPPORT 51372
+
+	//Semaforo
+	sem_t *semaforo;
 
 typedef struct CLIENT_PACKET{
 	char body[512];
@@ -38,24 +48,16 @@ typedef struct CLIENT_PACKET{
 	char aRTPMap[64]; //Media name and transport address
 	char aSize[32]; //Media name and transport address
 	char aRate[32]; //Media name and transport address
-	//Para el protocolo UDP
-	char ip[15];
-	key_t key; //qid en realidad es para el IPC, no tiene mucho que ver con esta estructura, pero es la manera más sencilla de pasarle el id
-
-	#define UDPPORT 51372
+	char ip[15]; //Para el protocolo UDP
+	char keyQ[8]; //Otra vez, el identificador de cola para que sea transportado a hilo UDP
 } client_packet;
 
 typedef struct TCP_INFO {
     int sd;
     char ip[15];
-    //IPC: el identificador de cola no escreado acá xq no es necesario crear la cola acá, solo es necesario entregar una key única a cada hiloTCP
-    key_t key;
+    //IPC: identificador de de cola creado por server
+    char keyQ[8];
 } tcp_info;
-
-typedef struct MSG_IPC{
-	long mtype;
-	char mtext[BUFMSG];
-}msg_ipc;
 
 typedef struct RTP_HEADER
 {

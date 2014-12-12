@@ -86,16 +86,17 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
             //================================
                 /*URI*/
             //================================
-            strcpy(auxCompleta, lecturaCompleta);
+            strncpy(auxCompleta, lecturaCompleta, strlen(lecturaCompleta));
             pToken = strstr(auxCompleta,"rtsp:");
             aux = strtok(pToken, s);
-            strcpy(respuestaRTSP.uri, aux);
+            strncpy(respuestaRTSP.uri, aux, strlen(aux));
+
             //================================
                 /*FileName from URI*/
             //================================
             //Ciertos clientes solo ponen el archivo solicitado en la URI a partir de DESCRIBE y no en OPTIONS y PLAY está puesto porque DESCRIBE no es necesario implementarlo
             if(memcmp(respuestaRTSP.method, "DESCRIBE", 8) == 0 || memcmp(respuestaRTSP.method, "PLAY", 4) == 0){
-                strcpy(auxCompleta, lecturaCompleta);
+                strncpy(auxCompleta, lecturaCompleta, strlen(lecturaCompleta));
 
                 //rtsp://192.168.0.102:8000/sample2.avi RTSP/1.0
 
@@ -120,7 +121,8 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
                     write(STDOUT_FILENO, aux, strlen(aux));
                 #endif
 
-                strcpy(respuestaRTSP.fileToPlay, aux);
+                memset(respuestaRTSP.fileToPlay, 0, sizeof(respuestaRTSP.fileToPlay));
+                strncpy(respuestaRTSP.fileToPlay, aux, strlen(aux));
                 #ifdef DEBUG
                     write(STDOUT_FILENO, "\nFile to play:", 14);
                     write(STDOUT_FILENO, respuestaRTSP.fileToPlay, strlen(respuestaRTSP.fileToPlay));
@@ -132,21 +134,21 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
                 /*RTSP Version*/
             //================================
 
-            strcpy(auxCompleta, lecturaCompleta);
+            strncpy(auxCompleta, lecturaCompleta, strlen(lecturaCompleta));
             pToken = strstr(auxCompleta,"RTSP/");
             pToken = pToken + 5;
             aux = strtok(pToken, s);
-            strcpy(respuestaRTSP.uri, aux);
+            strncpy(respuestaRTSP.uri, aux, strlen(aux));
 
             //================================
                 /*CSEQ*/
             //================================
             
-            strcpy(auxCompleta, lecturaCompleta);
+            strncpy(auxCompleta, lecturaCompleta, strlen(lecturaCompleta));
             pToken = strstr(auxCompleta,"CSeq:");
             pToken = pToken + 5;
             aux = strtok(pToken, s);
-            strcpy(respuestaRTSP.cseq, aux);
+            strncpy(respuestaRTSP.cseq, aux, strlen(aux));
         }
         //Sino, el metodo es: "no implementado" o corrupto
         else if(corrupt){
@@ -173,5 +175,9 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
 	 	respuestaRTSP.pckComplete = false;
         write(STDOUT_FILENO, "\nBuilding packet...", 19);
 	 }
+     pToken = NULL;
+     aux = pToken;
+     free(aux);
+     free(pToken);
 return respuestaRTSP;
 }

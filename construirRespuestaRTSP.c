@@ -7,7 +7,8 @@
 //=================================================================================
 bool fileNotFound(client_packet * packetRTSP);
 void construirRespuestaRTSP(client_packet * packetRTSP){
-
+	
+	memset(packetRTSP->body, 0, sizeof(packetRTSP->body));
 	//Pregunto si el archivo que me pasaron a reproducir existe realmente
     //================================
         /*200 OK OPTIONS*/
@@ -155,6 +156,7 @@ bool fileNotFound(client_packet * packetRTSP){
 	if ((fd = open (packetRTSP->fileToPlay, O_RDONLY)) < 0 )
 	{
 		memcpy(packetRTSP->body, "RTSP/1.0 404 Not Found\r\n", strlen("RTSP/1.0 404 Not Found\r\n")+1 );
+		//strncpy(packetRTSP->method, "NOT FOUND", 9);
 		strncat(packetRTSP->body, "CSeq: ", 6);
 		strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 		strncat(packetRTSP->body, "\r\n", 2);
