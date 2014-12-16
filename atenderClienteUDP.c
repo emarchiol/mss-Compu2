@@ -9,9 +9,12 @@
 //================================================================================================
 #include "funciones.h"
 
+char * rtpPacket(char buf[512]);
+char RtpBuf[PACKETSIZE];
 void atenderClienteUDP(client_packet * packetRTSP){
+
 #ifdef DEBUG
-    write(STDOUT_FILENO, "\nUDP->1Hilo UDP Inicializado", 27);
+    write(STDOUT_FILENO, "\nUDP->Hilo UDP Inicializado", 27);
     write(STDOUT_FILENO, "\nUDP->IP:", 9);
 #endif
 
@@ -20,29 +23,26 @@ void atenderClienteUDP(client_packet * packetRTSP){
     int leido;
     bool teardown = false;
     bool pause = false;
-    //Tiene que crear un nuevo socket con otro puerto previamente establecido mediante SETUP y desde server.c se tiene que pasar la IP del cliente
-    //Tiene que recibir por parametro la estructura previamente y la IP (tmb necesita puerto)
+    //Tiene que crear un nuevo socket con otro puerto previamente establecido mediante SETUP y desde server.c se tiene que pasar la IP del cliente (tmb el puerto)
     int sdUDP;
-    char buf[512];
+    char buf[512]; //Payload de video
+    char completePacket[PACKETSIZE]; //Paquete completo
     int tamBuf = sizeof(buf);
     struct sockaddr_in address;
-    rtp_header headerRTP;
-
-    //PARA COLAS
+    //"leido" para colas
     int rcv;
-
     //Descriptor de la cola
     mqd_t mq;
-    // initialize the queue attributes
+    //estructura de la cola
     struct mq_attr ma;
     char msg[QBUFMSG];
-    // Specify message queue attributes.
-    ma.mq_flags = QNOFLAGS;                // blocking read/write
-    ma.mq_maxmsg = QMAX;                 // maximum number of messages allowed in queue
+    // Atributos de la cola
+    ma.mq_flags = QNOFLAGS;
+    ma.mq_maxmsg = QMAX;
     ma.mq_msgsize = QBUFMSG;
-    ma.mq_curmsgs = QNOFLAGS;             // number of messages currently in queue
+    ma.mq_curmsgs = QNOFLAGS;
       
-    //Inicia la estructura de direcciones de scoket para los protocolos de internet
+    //Inicia la estructura de direcciones de socket para los protocolos de internet
     bzero(&address, sizeof(address));
     address.sin_family = AF_INET;
     inet_pton(AF_INET, packetRTSP->ip, &address.sin_addr );
@@ -56,26 +56,21 @@ void atenderClienteUDP(client_packet * packetRTSP){
     printf("\nUDP->Voy a abrir con clientInfo.key: %s\n", packetRTSP->keyQ);
     #endif
     if( (mq = mq_open(packetRTSP->keyQ, O_RDONLY | O_NONBLOCK, 0644, &ma)) < 0){
-        perror("\nUDP->FRACASO queue_open");
+        perror("\nUDP->Ups, queue_open dijo");
         return;
-    }else
+    }
+    #ifdef DEBUG 
+    else
         write(STDOUT_FILENO, "\nUDP->IPC Abierto con exito", 27);
-
+    #endif
     while( !teardown ){  
-    
-        //write(STDOUT_FILENO, "\nUDP->Escuchando IPC's", 22);
-
-        if((rcv = mq_receive(mq, msg , BUFMSG, 0)) < 0)
-            //perror("\nFRACASO en el mq_rcv");
-            sleep(0);
-        else{
-            #ifdef DEBUG
-                write(STDOUT_FILENO, "\nUDP->Recibi un:", 16);
-                write(STDOUT_FILENO, msg, rcv);
-                write(STDOUT_FILENO, "<-", 2);
-            #endif
-        }
-
+        
+        //Para imprimir perror debería hacer un analisis del error de otro modo al ser O_NONBLOCK spamearía todo el tiempo
+        rcv = mq_receive(mq, msg , BUFMSG, 0);
+            /*perror("\nFRACASO en el mq_rcv"); 
+            //solo para verificar que al apretar "STOP" hilo UDP realmente lo recibe y para el streaming
+            sleep(0); 
+        */
         if(strncmp(msg, "TEARDOWN", rcv) == 0)
             teardown = true;
         
@@ -84,12 +79,12 @@ void atenderClienteUDP(client_packet * packetRTSP){
             // Abre un archivo y lo envía por el socket
             if ((fd = open (packetRTSP->fileToPlay, O_RDONLY)) < 0)
             {
-                perror("UDP->FRACASO en abrir el archivo a reproducir, open dijo");
-                exit(1); //SETEAR METHOD EN TEARDOWN 
+                perror("UDP->Ups, open dijo");
+                exit(1);
             }
 
             memset(buf, 0, tamBuf);
-            write(STDOUT_FILENO, "\nUDP->Enviando archivo por UDP...", 33);
+            write(STDOUT_FILENO, "\nUDP->Streaming...", 18);
             //Se envia el archivo mientras haya lectura y teardown O pause sean falsos
             while ( ((leido = read(fd, buf, tamBuf)) > 0) && ((!teardown) && (!pause)) )
             {
@@ -111,51 +106,80 @@ void atenderClienteUDP(client_packet * packetRTSP){
                         teardown = true;
                         #ifdef DEBUG
                             write(STDOUT_FILENO, "\nUDP->TEARDOWN", 14);
-                            //Destruyo el IPC
-                            mq_close(mq);
                         #endif
+                            //Destruyo el IPC
+                            if(mq_close(mq)<0)
+                                perror("UDP->Ups, mq_close dijo");
                     }
                 }else
                 {
-                    //Construcción precaria de paquete RTP
-                    headerRTP.v = 2;
-                    headerRTP.seq = 12525;
-                    headerRTP.cc = 0;
-                    headerRTP.x = 0;
-                    headerRTP.m = 1;
-                    headerRTP.pt = 0;
-                    headerRTP.p = 0;
-                    headerRTP.ssrc = 25255563;
-                    headerRTP.ts = 0; //getTickCount(); (??)
-
-                    char buf2[20];
-                    snprintf(buf2, 20, "%d %d %d %d %d %d %d %d %d", headerRTP.v, headerRTP.seq, headerRTP.cc, headerRTP.x, headerRTP.m, headerRTP.pt, headerRTP.p, headerRTP.ssrc, headerRTP.ts);
-                    write(STDOUT_FILENO, "\nSending data - w/Header:", 25);
-                    write(STDOUT_FILENO, buf2, strlen(buf2));
-                    //Envío de datos al cliente
-                    sendto(sdUDP, buf2, sizeof(buf2), 0, (struct sockaddr *)&address, sizeof(address));
-                    sendto(sdUDP, buf, sizeof(buf), 0, (struct sockaddr *)&address, sizeof(address));
+                    //Envio de datos
+                    memcpy(completePacket, rtpPacket(buf), PACKETSIZE);
+                    sendto(sdUDP, completePacket, sizeof(completePacket), 0, (struct sockaddr *)&address, sizeof(address));
                     memset (buf, 0, tamBuf);
-                    #ifdef DEBUG
-                    //write(STDOUT_FILENO, "\nUDP->Durmiendo", 15);
-                    //sleep(1);
-                    perror("\n FRACASO en el mq_receive");
-                    #endif
                 }
-                sleep(1);
             }
-            
-            #ifdef DEBUG
-            //Espero xq ya termine
-            write(STDOUT_FILENO, "\nUDP->Ya termine", 16);
-            #endif
+            write(STDOUT_FILENO, "\nUDP->Done", 10);
+            teardown = true;
         }
         memset(buf, 0, tamBuf);
     }
 
-    //Cierro archivo
-    close (fd);
-    //Cierro el socket
-    close(sdUDP);
-    write(STDOUT_FILENO, "\nUDP->2Hilo UDP finalizado\n", 26);
+    //Cierro descriptores
+    if(close (fd)<0)
+        perror("UDP->Ups, close dijo");
+    if(close(sdUDP)<0)
+        perror("UDP->Ups, close dijo");
+    #ifdef DEBUG
+        write(STDOUT_FILENO, "\nUDP->Hilo UDP finalizado\n", 26);
+    #endif
+}
+
+char * rtpPacket(char buf[512]){
+    
+    #define KRtpHeaderSize 12           // size of the RTP header
+    #define KJpegHeaderSize 8           // size of the special JPEG payload header
+
+    
+    int RtpPacketSize = KRtpHeaderSize + KJpegHeaderSize;
+    int m_Timestamp = 0;
+    int m_SequenceNumber = 0;
+
+    memset(RtpBuf,0x00,sizeof(RtpBuf));
+    // Prepare the first 4 byte of the packet. This is the Rtp over Rtsp header in case of TCP based transport
+    RtpBuf[0]  = '$';        // magic number (??)
+    RtpBuf[1]  = 0;          // number of multiplexed subchannel on RTSP connection - here the RTP channel (wireshark dice: Channel:)
+    RtpBuf[2]  = (RtpPacketSize & 0x0000FF00) >> 8; //Length, 2bytes
+    RtpBuf[3]  = (RtpPacketSize & 0x000000FF);
+    // Prepare the 12 byte RTP header
+    RtpBuf[4]  = 0x80;                               // RTP version -> 128 -> binary 10
+    RtpBuf[5]  = 0x9a;                               // JPEG payload (26) and marker bit
+    RtpBuf[7]  = m_SequenceNumber & 0x0FF;           // each packet is counted with a sequence counter
+    RtpBuf[6]  = m_SequenceNumber >> 8;
+    RtpBuf[8]  = (m_Timestamp & 0xFF000000) >> 24;   // each image gets a timestamp
+    RtpBuf[9]  = (m_Timestamp & 0x00FF0000) >> 16;
+    RtpBuf[10] = (m_Timestamp & 0x0000FF00) >> 8;
+    RtpBuf[11] = (m_Timestamp & 0x000000FF);
+    RtpBuf[12] = 0x13;                               // 4 byte SSRC (sychronization source identifier)
+    RtpBuf[13] = 0xf9;                               // we just an arbitrary number here to keep it simple
+    RtpBuf[14] = 0x7e;
+    RtpBuf[15] = 0x67;
+    // Prepare the 8 byte payload JPEG header
+    RtpBuf[16] = 0x00;                               // type specific
+    RtpBuf[17] = 0x00;                               // 3 byte fragmentation offset for fragmented images
+    RtpBuf[18] = 0x00;
+    RtpBuf[19] = 0x00;
+    RtpBuf[20] = 0x01;                               // type
+    RtpBuf[21] = 0x5e;  
+
+    RtpBuf[22] = 0x08;                           // width  / 8 -> 64 pixel
+    RtpBuf[23] = 0x06;                           // height / 8 -> 48 pixel
+    
+    // append the JPEG scan data to the RTP buffer
+    memcpy(&RtpBuf[24], buf, 512);
+    
+    m_SequenceNumber++;                              // prepare the packet counter for the next packet
+    m_Timestamp += 3600;                             // fixed timestamp increment for a frame rate of 25fps
+
+    return RtpBuf;
 }

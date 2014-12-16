@@ -27,6 +27,7 @@
 	#define QNOFLAGS 0
 	#define QMAX 5
 	#define UDPPORT 51372
+	#define PACKETSIZE 2048
 
 	//Semaforo
 	sem_t *semaforo;
@@ -58,20 +59,6 @@ typedef struct TCP_INFO {
     //IPC: identificador de de cola creado por server
     char keyQ[8];
 } tcp_info;
-
-typedef struct RTP_HEADER
-{
-	u_int16_t v:2; /* protocol version */
-	u_int16_t p:1; /* padding flag */
-	u_int16_t x:1; /* header extension flag */
-	u_int16_t cc:4; /* CSRC count */
-	u_int16_t m:1; /* marker bit */
-	u_int16_t pt:7; /* payload type */
-	u_int16_t seq:16; /* sequence number */
-	u_int32_t ts; /* timestamp */
-	u_int32_t ssrc; /* synchronization source */
-// u_int32_t *csrc;
-}rtp_header;
 
 void atenderClienteTCP(tcp_info * clientInfo);
 void atenderClienteUDP(client_packet * packetRTSP);

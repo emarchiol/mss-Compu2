@@ -7,7 +7,7 @@
 //=================================================================================
 bool fileNotFound(client_packet * packetRTSP);
 void construirRespuestaRTSP(client_packet * packetRTSP){
-	
+
 	memset(packetRTSP->body, 0, sizeof(packetRTSP->body));
 	//Pregunto si el archivo que me pasaron a reproducir existe realmente
     //================================
@@ -29,7 +29,7 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
 
         if ((fd = open ("config/metodos", O_RDONLY)) < 0)
         {
-            perror("Fracaso en abrir el archivo de metodos, open dijo:");
+            perror("construirRespuesta->Ups, parece que falta el archivo de metodos, open dijo");
             exit(1);
         }
 
@@ -55,8 +55,6 @@ void construirRespuestaRTSP(client_packet * packetRTSP){
     //================================
         /*200 OK DESCRIBE*/
     //================================
-    //Necesarios: content-type (mime de accept) content-lenght
-    //Despues en el body: :/ según el RFC con varios pero con 'm' y algunos 'a' la cosa funciona
 	else if( memcmp(packetRTSP->method, "DESCRIBE", 8) == 0 ){
 
 		//Primero me fijo si el archivo solicitado existe. 404 ?
@@ -156,13 +154,15 @@ bool fileNotFound(client_packet * packetRTSP){
 	if ((fd = open (packetRTSP->fileToPlay, O_RDONLY)) < 0 )
 	{
 		memcpy(packetRTSP->body, "RTSP/1.0 404 Not Found\r\n", strlen("RTSP/1.0 404 Not Found\r\n")+1 );
-		//strncpy(packetRTSP->method, "NOT FOUND", 9);
 		strncat(packetRTSP->body, "CSeq: ", 6);
 		strncat(packetRTSP->body, packetRTSP->cseq, strlen(packetRTSP->cseq));
 		strncat(packetRTSP->body, "\r\n", 2);
 		strncat(packetRTSP->body, "\r\n\r\n", 4);
-		close(fd);
 		return true;
 	}
-	else return false;
+	else{
+		if(close(fd)<0)
+			perror("construirRespuesta->Ups, close dijo");
+		return false;
+	}
 }

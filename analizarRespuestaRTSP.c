@@ -45,7 +45,7 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         //Abro el archivo con los tipos de métodos RTSP implementados por el servidor 
         if ((fd = open ("config/metodos", O_RDONLY)) < 0)
         {
-            perror("Fracaso en abrir el archivo de metodos, open dijo:");
+            perror("analizarRespuesta->Ups, probablemente falta archivo de metodos open dijo:");
             exit(1);
         }
         
@@ -162,7 +162,8 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         }
 
         //Cierro archivo "metodos.txt"
-        close (fd);
+        if(close(fd) <0 )
+            perror("AnalizarRespuesta->Ups, close dijo");
      }
 	 //Inicio o medio de un mensaje compuesto sin doble CRLF
 	 else{
@@ -171,7 +172,7 @@ client_packet analizarRespuestaRTSP(char lectura[1024], char * lecturaCompleta){
         lecturaCompleta = strncat(lecturaCompleta, lectura, strlen(lectura));
         //Seteo el mensaje como incompleto
         memset(respuestaRTSP.method, 0, sizeof(respuestaRTSP.method));
-	 	memcpy(respuestaRTSP.method, "Incomplete",11);
+	 	memcpy(respuestaRTSP.method, "Incomplete", strlen("Incomplete")+1);
 	 	respuestaRTSP.pckComplete = false;
         write(STDOUT_FILENO, "\nBuilding packet...", 19);
 	 }
